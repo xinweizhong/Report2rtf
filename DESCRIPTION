@@ -1,0 +1,15 @@
+Package: Report2rtf
+Title: Assemble Multiple RTF Table Listing and Figure Into One RTF Document
+Version: 0.1.0
+Authors@R: 
+    person("Xinwei", "Zhong", email = "xinwei.zhong@foxmail.com", role = c("aut", "cre"))
+Description: Create production-ready Rich Text Format (RTF) table and figure.
+License: GPL-3
+Encoding: UTF-8
+Imports: grDevices, devEMF
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+NeedsCompilation: no
+Packaged: 2025-11-10 06:49:35 UTC; zhongxw1
+Author: Xinwei Zhong [aut, cre]
+Maintainer: Xinwei Zhong <xinwei.zhong@foxmail.com>
