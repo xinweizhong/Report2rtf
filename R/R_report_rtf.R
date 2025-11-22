@@ -1,5 +1,64 @@
-.to_rtffontcode <- function(str) {
-  str1<-unlist(strsplit(str, ""))
+
+.protect_specialchars<-function(text){
+  if(grepl("#R{", text,fixed =T )|grepl("#R/RTF{", text,fixed =T)){
+    flag<-0
+    text_chg<-""
+    start<-1
+    stop<-0
+    for(i in (1:nchar(text))){ 
+      if(substr(text,i,i+2)=="#R{"|substr(text,i,i+6)=="#R/RTF{"){ 
+        flag<-flag+1
+        if(flag==1){ 
+          start<-stop+1
+          stop<-i-1
+          text_chg<-paste0(text_chg,gsub("\\\\", "\\\\\\\\\\1", substr(text,start,stop),perl = TRUE)) 
+        }
+      }
+      if(flag>0 &substr(text,i,i)=="}"){ 
+        flag<-flag-1
+        if(flag==0){ 
+          start<-stop+1
+          stop<-i-1
+          text_chg<-paste0(text_chg,substr(text,start,stop)) 
+        }
+      }
+      if(i==nchar(text) & flag==0){
+        start<-stop+1
+        stop<-i
+        text_chg<-paste0(text_chg,gsub("\\\\", "\\\\\\\\\\1", substr(text,start,stop),perl = TRUE))
+      }
+    }
+    text_chg
+  }else { gsub("\\\\", "\\\\\\\\\\1", text,perl = TRUE) }
+}
+
+.hex_to_dec_unicode <- function(s) {
+  pattern <- "\\\\u[0-9A-Fa-f]{4}"
+  m <- gregexpr(pattern, s)
+  matches <- regmatches(s, m)
+  if (length(matches[[1]])) {
+    replacements <- lapply(matches, function(x) {
+      sapply(x, function(y) {
+        hex <- substring(y, 3)
+        dec <- strtoi(hex, 16L)
+        paste0("\\u", dec, ";")
+      })
+    })
+    regmatches(s, m) <- replacements
+  }
+  s
+}
+
+.to_rtffontcode <- function(str,protectspecialchar=F) {
+  if(protectspecialchar==TRUE){
+    str1<-.protect_specialchars(str)
+  }else{
+    str1<-gsub("\\\\([^a-zA-Z])", "\\\\\\\\\\1", gsub("\\\\(\\\\)", "\\\\\\\\\\\\", str,perl = TRUE),perl = TRUE)
+  }
+  str1<-gsub("(#R/RTF\\{)([^}]*)\\}", "\\2", str1)
+  str1<-gsub("(#R\\{)( ?)(unicode)( *)([^}]*)\\}","\\5",.hex_to_dec_unicode(str1), ignore.case =T)
+  str1<-gsub("(#R\\{)( ?)(sub|super)( *)([^}]*)\\}", "\\\\\\2\\3\\4\\5 \\\\nosupersub ", str1, ignore.case =T)
+  str1<-unlist(strsplit(str1, ""))
   for(i in 1:length(str1)){
     if (grepl("[^\u0001-\u007F]",str1[i], perl = TRUE)){
       s<-paste0("\\u", utf8ToInt(str1[i]),";")
@@ -60,7 +119,7 @@
 rtf_start <- function(outpath=".",reportname="report_rtf.rtf"
                        ,reporttitle=c("Prject name","Report for","Sponsor","")
                        ,papersize ="A4" ,fontsize=10.5,font="SimSun/Times New Roman"
-                       ,protectspecialchars=FALSE,marglrtb=c(1,1,1,1),orientation="landscape"
+                       ,protectspecialchars=TRUE,marglrtb=c(1,1,1,1),orientation="landscape"
                        ,head_footery=c(0.5,0.5),bodytitle=TRUE){
   
   ############# start rtf code #############
@@ -70,7 +129,7 @@ rtf_start <- function(outpath=".",reportname="report_rtf.rtf"
   for(i in 1:(.count_char(font,"/")+1)){
     font_1<-unlist(strsplit(font,"/"))[i]
     if(nchar(font_1)>0){
-      font_1<-.to_rtffontcode(font_1)
+      font_1<-.to_rtffontcode(font_1,protectspecialchar=protectspecialchars)
       font_ls<-paste0(font_ls,paste0("\\f",i))
       rtf_start_font<-paste(rtf_start_font,paste0("{\\f",i,"\\froman\\fprq2\\fcharset134\\cpg936 ", font_1,";}"),sep="\n")
     }
@@ -115,11 +174,6 @@ rtf_start <- function(outpath=".",reportname="report_rtf.rtf"
   
   pagen_txt<-""
   if(!is.null(reporttitle) &!any(is.na(reporttitle))){
-    if(protectspecialchars==TRUE){
-      reporttitle<-gsub("\\\\", "\\\\\\\\\\1", reporttitle,perl = TRUE)
-    }else{
-      reporttitle<-gsub("\\\\([^a-zA-Z])", "\\\\\\\\\\1", gsub("\\\\(\\\\)", "\\\\\\\\\\\\", reporttitle,perl = TRUE),perl = TRUE)
-    }
     for(i in 1:4){
       if(is.na(reporttitle[i])){ reporttitle[i]<-"" }
     }
@@ -130,7 +184,7 @@ rtf_start <- function(outpath=".",reportname="report_rtf.rtf"
     hlabel_txt<-reporttitle[1]
     if(nchar(hlabel_txt)>0){
       #hlabel_txt<-gsub("\\\\([a-zA-Z])", "\\\\\\\\\\1", hlabel_txt,perl = TRUE)
-      hlabel_txt<-.to_rtffontcode(hlabel_txt)
+      hlabel_txt<-.to_rtffontcode(hlabel_txt,protectspecialchar=protectspecialchars)
     }
     header_rtf_txtc1<-paste0(tab_txt_pre_temp,"\\ql\\fs",fontsize*2,"{",hlabel_txt,"\\cell}")
     header_rtf_txtc2<-paste0(tab_txt_pre_temp,"\\qr\\fs",fontsize*2,"{",pagen_txt,"\\cell}")
@@ -138,13 +192,13 @@ rtf_start <- function(outpath=".",reportname="report_rtf.rtf"
     hlabel_txt<-reporttitle[2]
     if(nchar(hlabel_txt)>0){
       #hlabel_txt<-gsub("\\\\([a-zA-Z])", "\\\\\\\\\\1", hlabel_txt,perl = TRUE)
-      hlabel_txt<-.to_rtffontcode(hlabel_txt)
+      hlabel_txt<-.to_rtffontcode(hlabel_txt,protectspecialchar=protectspecialchars)
     }
     header_rtf_txtc1<-paste0(tab_txt_pre_temp,"\\ql\\fs",fontsize*2,"{",hlabel_txt,"\\cell}")
     hlabel_txt<-reporttitle[3]
     if(nchar(hlabel_txt)>0){
       #hlabel_txt<-gsub("\\\\([a-zA-Z])", "\\\\\\\\\\1", hlabel_txt,perl = TRUE)
-      hlabel_txt<-.to_rtffontcode(hlabel_txt)
+      hlabel_txt<-.to_rtffontcode(hlabel_txt,protectspecialchar=protectspecialchars)
     }
     header_rtf_txtc2<-paste0(tab_txt_pre_temp,"\\qr\\fs",fontsize*2,"{",hlabel_txt,"\\cell}")
     header_rtf_txt<-paste(header_rtf_txt,header_rtf_txtcw,header_rtf_txtc1,header_rtf_txtc2,"{\\row}",sep="\n")
@@ -289,7 +343,7 @@ rtf_plot <- function(x,imagefmt="emf", width = 7, height = 7,bg = "transparent",
 #' @export
 ############# add textline rtf #############
 rtf_addtextline <- function(text=NULL,fontsize=10.5,style="normal",align = "left",bold=FALSE
-                             ,protectspecialchars=FALSE,inheader=NULL){
+                             ,protectspecialchars=TRUE,inheader=NULL){
   if (!is.null(text) &!is.na(text)){
     align_txt<-"\\ql"
     if (toupper(align) %in% c("CENTER","C")){ align_txt<-"\\qc" }
@@ -299,13 +353,7 @@ rtf_addtextline <- function(text=NULL,fontsize=10.5,style="normal",align = "left
     if(is.null(inheader)){
       if(.trf_options$bodytitle==FALSE){inheader<-TRUE} else{inheader<-FALSE}
     }
-    
-    if(protectspecialchars==TRUE){
-      text<-gsub("\\\\", "\\\\\\\\\\1", text,perl = TRUE)
-    }else{
-      text<-gsub("\\\\([^a-zA-Z])", "\\\\\\\\\\1", gsub("\\\\(\\\\)", "\\\\\\\\\\\\", text,perl = TRUE),perl = TRUE)
-    }
-    text<-.to_rtffontcode(text)
+    text<-.to_rtffontcode(text,protectspecialchar=protectspecialchars)
     tb_cellw_temp<-paste0("\\trowd\\trkeep\\trqc\n",.trf_options$tb_cellw_temp,.trf_options$max_colw,"\n")
     rtf_textline<-paste0(tb_cellw_temp,.trf_options$tab_txt_pre_temp,"\\fs",fontsize*2,align_txt,"{",text,"\\cell}{\\row}")
     rtf_textline_bk<-rtf_textline
@@ -418,7 +466,7 @@ rtf_addreporttitle <- function(){
 #'
 #' @export
 rtf_addtable <- function(indat,varlist=NULL,norecord ="No Observed Value Was Reported."
-                          ,protectspecialchars=FALSE,perpage_obs=NA){
+                          ,protectspecialchars=TRUE,perpage_obs=NA){
   ######### parameter control ###
   if(!missing(indat)){
     if(!exists("indat")){
@@ -431,11 +479,6 @@ rtf_addtable <- function(indat,varlist=NULL,norecord ="No Observed Value Was Rep
   indat<-as.data.frame(indat)
   lstrvar_seq<-4
   if (!is.null(varlist) ){
-    if(protectspecialchars==TRUE){
-      varlist<-gsub("%\\\\", "%\\\\\\\\\\1", varlist,perl = TRUE)
-    }else{
-      varlist<-gsub("%\\\\([^a-zA-Z])", "%\\\\\\\\\\1", varlist,perl = TRUE)
-    }
     varlist<-gsub("%/", "$#@",gsub("%\\\\", "$##@",varlist))
     var_attrib<-data.frame(varlist=varlist)
     count<-.count_delimiters(varlist,"/")
@@ -481,11 +524,6 @@ rtf_addtable <- function(indat,varlist=NULL,norecord ="No Observed Value Was Rep
     if(ncol(indat)>20){indat<-indat[,1:20]}
     varls<-names(indat)
     vlabel<-varls
-    if(protectspecialchars==TRUE){
-      vlabel<-gsub("\\\\", "\\\\\\\\\\1", vlabel,perl = TRUE)
-    }else{
-      vlabel<-gsub("\\\\([^a-zA-Z])", "\\\\\\\\\\1", gsub("\\\\(\\\\)", "\\\\\\\\\\\\", vlabel,perl = TRUE),perl = TRUE)
-    }
     for(i in 1:length(varls)){
       if(!is.null(attr(indat[,i],"label"))){vlabel[i]<-attr(indat[,i],"label")}
     }
@@ -550,7 +588,7 @@ rtf_addtable <- function(indat,varlist=NULL,norecord ="No Observed Value Was Rep
       for(j in 1:nrow(mergehd)){
         mgheader_txt<-mergehd[j,mg_var]
         # mgheader_txt<-gsub("\\\\", "\\\\\\\\\\1", mgheader_txt,perl = TRUE)
-        if(nchar(mgheader_txt)>0){ mgheader_txt<-.to_rtffontcode(mgheader_txt) }
+        if(nchar(mgheader_txt)>0){ mgheader_txt<-.to_rtffontcode(mgheader_txt,protectspecialchar=protectspecialchars) }
         if(i==(lstrvar_seq-1)){
           tb_cellw_temp_1<-ifelse(is.na(mgheader_txt)|mgheader_txt=="",tb_cellw_temp_t,tb_cellw_temp_tb)
         }else{
@@ -575,7 +613,7 @@ rtf_addtable <- function(indat,varlist=NULL,norecord ="No Observed Value Was Rep
     label_txt<-var_attrib$rsplit2[c]
     if(nchar(label_txt)>0){
       #label_txt<-gsub("\\\\([a-zA-Z])", "\\\\\\\\\\1", label_txt,perl = TRUE)
-      label_txt<-.to_rtffontcode(label_txt)
+      label_txt<-.to_rtffontcode(label_txt,protectspecialchar=protectspecialchars)
       label_txt<-gsub("\\$", "\\\\\\par ",label_txt)
       tab_header<-paste0(tab_header,tab_txt_pre_temp,tb_align_txt,"{",label_txt,"\\cell}\n")
     }else {
@@ -608,12 +646,7 @@ rtf_addtable <- function(indat,varlist=NULL,norecord ="No Observed Value Was Rep
           if(outdat[r-1,c]==outdat[r,c]){ tab_txt_rtf<-"" } 
         }
         if (nchar(tab_txt_rtf)>0){
-          if(protectspecialchars==TRUE){
-            tab_txt_rtf<-gsub("\\\\", "\\\\\\\\\\1", tab_txt_rtf,perl = TRUE)
-          }else{
-            tab_txt_rtf<-gsub("\\\\([^a-zA-Z])", "\\\\\\\\\\1", gsub("\\\\(\\\\)", "\\\\\\\\\\\\", tab_txt_rtf,perl = TRUE),perl = TRUE)
-          }
-          tab_txt_rtf<-.to_rtffontcode(tab_txt_rtf)
+          tab_txt_rtf<-.to_rtffontcode(tab_txt_rtf,protectspecialchar=protectspecialchars)
         }else { tab_txt_rtf<-"" }
         if(nchar(tab_txt_rtf)>0){
           tab_txt_cd<-paste0(tab_txt_cd,tab_txt_pre_temp,tb_align_txt,"{",tab_txt_rtf,"\\cell}\n")
@@ -630,7 +663,7 @@ rtf_addtable <- function(indat,varlist=NULL,norecord ="No Observed Value Was Rep
       }
     }
   }else{
-    rtf_table<-paste0(rtf_table,nulltabtab_pre_code_tb,paste0(tab_txt_pre_temp,"\\qc{\\par\\par\\par",.to_rtffontcode(norecord),"\\par\\par\\cell}\n"),"{\\row}")
+    rtf_table<-paste0(rtf_table,nulltabtab_pre_code_tb,paste0(tab_txt_pre_temp,"\\qc{\\par\\par\\par",.to_rtffontcode(norecord,protectspecialchar=protectspecialchars),"\\par\\par\\cell}\n"),"{\\row}")
   }
   .trf_options$rtf_code<<-paste(.trf_options$rtf_code,rtf_table,sep="\n")
 }
