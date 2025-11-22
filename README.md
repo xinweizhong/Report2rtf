@@ -129,9 +129,22 @@ rtf_end()
 ![inset_table_perpage_obs](/image/inset_table_perpage_obs.png)
 
 
+   - **示例7：文本上下标及插入特殊字符**
+>上标用： #R{super 上标文本}
+>下标用： #R{sub 下标文本}
+>插入特殊字符： #R{unicode 对应特殊字符的unicode码}
+>**程序：**
+```
+rtf_start()
+rtf_addtextline(text="表2：RTF文件输出表测试(空表)C#R{sub R}L#R{super i} #R{unicode \\u261A\\u261B}",style="title")
+rtf_end()
+```
+>**结果：**\
+ ![inset_table](/image/sub_super_str.png)\
+
 
  \
-   - **示例7：多function同时使用**
+   - **示例8：多function同时使用**
 ```
 library(ggplot2)
 mpg<-mpg
@@ -150,15 +163,15 @@ rtf_addtable(mpg1,varlist=c("manufacturer/制造商/10/header%/test01/\\l\\order
 ############
 rtf_pagebreak()
 rtf_addreporttitle()
-rtf_addtextline(text="表2：RTF文件输出表测试(空表)",style="title")
+rtf_addtextline(text="表2：RTF文件输出表测试(空表)C#R{sub R}L#R{super i}",style="title")
 adae1<-adae[0,]
 ######### ######
 rtf_addtable(adae1,varlist=c("SUBJID/label 01/10/\\l\\order"
                              ,"TRT01P/label 02/10/\\c"
                              ,"AETERM/label 03/10/header%\\test02/header zz/\\c"
                              ,"AESOC/label 04/10/header%\\test02/header zz/\\r"))
-rtf_addtextline(text="footnote: 脚注测试\\par a.每次访视至少完成一类问题的受试者占当前访视在治人数比例；
-\\par b. 每次访视至少完成一类问题的受试者占有基线PRO的受试者比例；")
+rtf_addtextline(text="footnote: 脚注测试#R/RTF{\\par\\b} a.每次访视至少完成一类问题的受试者占当前访视在治人数比例；
+#R/RTF{\\par\\b} b. 每次访视至少完成一类问题的受试者占有基线PRO的受试者比例；")
 rtf_end() 
 
 ##################### 输出图形 ##########################
@@ -166,8 +179,8 @@ mt <- ggplot(mtcars, aes(mpg, wt, colour = factor(cyl))) + geom_point()
 rtf_start(outpath="./",reportname="report_figurertf",marglrtb=c(1,1,0.5,0.5),bodytitle=F) 
 rtf_addtextline(text="图1：RTF文件输出图测试",style="title")
 rtf_plot(mt,width = 10, height = 5.4)
-rtf_addtextline(text="footnote: 脚注测试\\par a.每次访视至少完成一类问题的受试者占当前访视在治人数比例；
-\\par b. 每次访视至少完成一类问题的受试者占有基线PRO的受试者比例；")
+rtf_addtextline(text="footnote: 脚注测试#R/RTF{\\par\\b} a.每次访视至少完成一类问题的受试者占当前访视在治人数比例；
+#R/RTF{\\par\\b} b. 每次访视至少完成一类问题的受试者占有基线PRO的受试者比例；")
 rtf_end()
 ```
 

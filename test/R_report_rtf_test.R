@@ -59,8 +59,8 @@ rtf_addtable(adae1,varlist=c("SUBJID/label 01/10/\\l\\order"
                               ,"TRT01P/label 02/10"
                               ,"AETERM/label 03/10/header%\\test02/header zz/\\c"
                               ,"AESOC/label 04/10/header%\\test02/header zz/\\r"))
-rtf_addtextline(text="footnote: 脚注测试\\par a.每次访视至少1\\3完成一类问题的受试者占当前访视在治人数比例；
-\\par\\b b. 每次访视至少完成一类问题的受试者占有基线PRO的受试者比例；")
+rtf_addtextline(text="footnote: 脚注测试#R/RTF{\\par} a.每次访视至少1\\3完成一类问题的受试者占当前访视在治人数比例；
+#R/RTF{\\par\\b} b. 每次访视至少完成一类问题的受试者占有基线PRO的受试者比例；")
 rtf_end() 
 
 ##################### 输出图形 ##########################
@@ -72,8 +72,8 @@ mt <- ggplot(mtcars, aes(mpg, wt, colour = factor(cyl))) + geom_point()
 rtf_start(outpath="./",reportname="report_figure.rtf",marglrtb=c(1,1,0.5,0.5),bodytitle=F) 
 rtf_addtextline(text="图1：RTF文件输出图测试",style="title")
 rtf_plot(mt,imagefmt="emf",width = 9, height = 5.4)
-rtf_addtextline(text="footnote: 脚注测试\\par a. \\\\ 每次访视至少完成一类问题的受试者占当前访视在治人数比例；
-\\par b. 每次访视至少完成一类问题的受试者占有基线PRO的受试者比例；",style="footnote")
+rtf_addtextline(text="footnote: 脚注测试#R/RTF{\\par\\b} a. \\\\ 每次访视至少完成一类问题的受试者占当前访视在治人数比例；
+#R/RTF{\\par\\b} b. 每次访视至少完成一类问题的受试者占有基线PRO的受试者比例；",style="footnote")
 rtf_end()  
 
 
@@ -99,7 +99,7 @@ rtf_addtable(mpg,varlist=c("manufacturer/制造商/10/header%/test01"
                             ,"drv/参数03/10/header%\\test03/header zz/\\r")
               ,perpage_obs="model")
 
-rtf_addtextline(text="footnote: 脚注测试\\par a.每次访视至少1\\3完成一类问题的受试者占当前访视在治人数比例；
-\\par\\b b. 每次访视至少完成一类问题的受试者占有基线PRO的受试者比例；",style="footnote")
+rtf_addtextline(text="footnote: 脚注测试#R/RTF{\\par\\b} a.每次访视至少1\\3完成一类问题的受试者占当前访视在治人数比例；
+#R/RTF{\\par\\b} b. 每次访视至少完成一类问题的受试者占有基线PRO的受试者比例；",style="footnote")
 rtf_end() 
  
